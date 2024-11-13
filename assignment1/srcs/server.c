@@ -19,8 +19,9 @@
 
 /*
  * server.c
- * Name:
- * PUID:
+ * Name: Fenil Gala
+ * PUID: 0033439368
+ * Colab: Aniket Mohanty
  */
 
 #include <stdio.h>
@@ -44,8 +45,79 @@
  */
 int server(char *server_port)
 {
-  return 0;
+	struct addrinfo hints, *info;
+	memset(&hints,0,sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	struct sockaddr clientaddr;
+	socklen_t sin_size;
+	int yes = 1;
+	char buffer[RECV_BUFFER_SIZE];
+	int sockfd, newfd, bytes_rec;
+  
+	if (getaddrinfo(NULL, server_port, &hints, &info) != 0) {
+		perror("getaddrinfo\n");
+		freeaddrinfo(info);
+		return 1;
+	}
+
+	if ((sockfd = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
+		perror("socket\n");
+		freeaddrinfo(info);
+		return 1;
+	}
+	
+	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+		perror("setsockopt\n");
+		freeaddrinfo(info);
+		return 1;
+	}
+
+	if (bind(sockfd, info->ai_addr, info->ai_addrlen) == -1) {
+		perror("bind\n");
+		close(sockfd);
+		freeaddrinfo(info);
+		return 1;
+	}
+
+	if (listen(sockfd, QUEUE_LENGTH) == -1) {
+		perror("listen");
+		freeaddrinfo(info);
+		close(sockfd);
+		return 1;
+	}
+	
+	while (1) {
+		sin_size = sizeof clientaddr;
+		newfd = accept(sockfd, &clientaddr, &sin_size);
+		if (newfd == -1) {
+			perror("accept\n");
+			continue;
+		}
+
+		while ((bytes_rec = recv(newfd, buffer, RECV_BUFFER_SIZE, 0)) > 0) {
+			if (fwrite(buffer, 1, bytes_rec, stdout) != (size_t)bytes_rec) {
+				perror("fwrite\n");
+				return 3;
+			}
+			fflush(stdout);
+		}
+
+		if (bytes_rec == -1) {
+			perror("recv");
+			continue;
+		}
+
+		close(newfd);
+	}
+
+	close(sockfd);
+	freeaddrinfo(info);
+	return 0;
 }
+
 
 /*
  * main():
@@ -53,14 +125,14 @@ int server(char *server_port)
  */
 int main(int argc, char **argv)
 {
-  char *server_port;
+	char *server_port;
 
-  if (argc != 2)
-  {
-    fprintf(stderr, "Usage: ./server-c (server port)\n");
-    exit(EXIT_FAILURE);
-  }
+	if (argc != 2)
+	{
+		fprintf(stderr, "Usage: ./server-c (server port)\n");
+		exit(EXIT_FAILURE);
+	}
 
-  server_port = argv[1];
-  return server(server_port);
+	server_port = argv[1];
+	return server(server_port);
 }

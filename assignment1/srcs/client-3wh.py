@@ -19,6 +19,13 @@
 ##
 #############################################################################
 
+"""
+    client-3wh.py
+    Name: Fenil Gala
+    PUID: 0033439368
+    Colab: Aniket Mohanty
+"""
+
 from scapy.all import *
 import threading
 
@@ -26,7 +33,6 @@ SEND_PACKET_SIZE = 1000  # should be less than max packet size of 1500 bytes
 
 # A client class for implementing TCP's three-way-handshake connection establishment and closing protocol,
 # along with data transmission.
-
 
 class Client3WH:
 
@@ -69,22 +75,27 @@ class Client3WH:
         """
 
         ### BEGIN: ADD YOUR CODE HERE ... ###
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+        if pkt[TCP].dport == self.sport:
+            tcppkt = pkt[TCP]
+                
+            if tcppkt.flags & 0x3f == 0x01:
+                self.next_ack = tcppkt.seq + 1
+                self.next_seq = tcppkt.ack
+                finackpkt = self.ip / TCP(dport=self.dport, sport=self.sport,
+                                                    seq=self.next_seq, ack=self.next_ack, flags="FA")
+                send(finackpkt)
+            else:
+                if len(tcppkt.payload) > 0:
+                    self.next_seq += 1
+                    self.next_ack = tcppkt.seq + len(tcppkt.payload)
+                elif tcppkt.flags & 0x3f == 0x11:
+                    self.next_ack = tcppkt.seq + 1
+                    self.next_seq = tcppkt.ack
+
+                ackpkt = self.ip / TCP(dport=self.dport, sport=self.sport,
+                                                    seq=self.next_seq, ack=self.next_ack, flags="A")
+                send(ackpkt)
 
         ### END: ADD YOUR CODE HERE ... #####
 
@@ -97,31 +108,30 @@ class Client3WH:
         """
 
         ### BEGIN: ADD YOUR CODE HERE ... ###
+
+        synpkt = self.ip / TCP(dport=self.dport, sport=self.sport, seq=self.next_seq, flags="S")
+        self.next_seq += 1
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        synackpkt = sr1(synpkt, timeout=self.timeout)
+
+        if synackpkt and TCP in synackpkt and synackpkt[TCP].flags & 0x3f == 0x12:
+            self.next_ack = synackpkt[TCP].seq + 1
+
+            ackpkt = self.ip / TCP(dport=self.dport, sport=self.sport,
+                                    seq=self.next_seq, ack=self.next_ack, flags="A")
+            send(ackpkt) 
+
+            self.connected = True
+            self._start_sniffer()
+            print('Connection Established')
+        else:
+            return
 
         ### END: ADD YOUR CODE HERE ... #####
 
-        self.connected = True
-        self._start_sniffer()
-        print('Connection Established')
+        # self.connected = True
+        # self._start_sniffer()
+        # print('Connection Established')
 
     def close(self):
         """TODO(3): Implement TCP's three-way-handshake protocol for closing a connection. Here are some
@@ -133,17 +143,15 @@ class Client3WH:
 
         ### BEGIN: ADD YOUR CODE HERE ... ###
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        finpkt = self.ip / TCP(dport=self.dport, sport=self.sport, seq=self.next_seq, ack=self.next_ack, flags="FA")
+        self.next_seq += 1 
+        finackpkt = sr1(finpkt, timeout=self.timeout)
 
+        if finackpkt and TCP in finackpkt and finackpkt[TCP].flags & 0x3f == 0x11:
+            self.next_ack = finackpkt[TCP].seq + 1
+            ackpkt = self.ip / TCP(dport=self.dport, sport=self.sport, seq=self.next_seq, ack=self.next_ack, flags="A")
+            send(ackpkt)
+            
         ### END: ADD YOUR CODE HERE ... #####
 
         self.connected = False
@@ -157,18 +165,11 @@ class Client3WH:
 
         ### BEGIN: ADD YOUR CODE HERE ... ###
         
+        tcppkt = self.ip / TCP(dport=self.dport, sport=self.sport, 
+                                seq=self.next_seq, ack=self.next_ack, flags="PA")
+        send(tcppkt / payload)
+        self.next_seq += len(payload)
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         ### END: ADD YOUR CODE HERE ... #####
 
 
