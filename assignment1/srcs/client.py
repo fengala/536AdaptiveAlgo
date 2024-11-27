@@ -18,8 +18,11 @@
 ##     along with Purdue CS 536. If not, see <https://www.gnu.org/licenses/>.
 ##
 #############################################################################
+import matplotlib as mpl
+mpl.use('Agg')
 
 from scapy.all import *
+import matplotlib.pyplot as plt
 import threading
 
 SEND_PACKET_SIZE = 1000  # should be less than max packet size of 1500 bytes
@@ -46,18 +49,25 @@ class Client3WH:
         self.timeout = 3
 
         #New stuff
-        self.R = 0.025 #Our timeout that adapts
-        self.a = 6
-        self.c = 10
-        self.b = (self.a - 1)/self.a
-        self.d = (self.c - 1)/self.c
+        self.R = 0.4 #Our timeout that adapts
+        self.a = 6.0
+        self.c = 10.0
+        self.b = (self.a - 1) / self.a
+        self.d = (self.c - 1) / self.c
         self.Y = 0.05 #Retransmission limit
         self.e = 0.4 #Small constant
 
-        self.T = 0.025 #Smoothed RTT
-        self.V = 0.0005 #Variance 
+        self.T = 0.02 #Smoothed RTT
+        self.V = 0.01 #Variance 
 
         self.avg_t = 0
+        
+        self.timeouts = 0
+        
+        self.rg = [self.R]
+        self.tg = [self.T]
+        self.rttg = []
+        self.x_axis = [0]
 
 
     def _start_sniffer(self):
@@ -220,26 +230,16 @@ class Client3WH:
             self.V = self.d * self.V + ((t - self.T)**2)/self.c
             self.T = self.b * self.T + t/self.a
             self.R = self.T + self.e*((self.V*(1-self.Y)/self.Y)**(1/2))
-        else:
-            self.avg_t += self.R
             
-
-        
-    
-        self.next_seq += len(payload)
-
-
-
-
-
-        
-        
-        
-        
-        
-        
-        
-        
+            self.rg.append(self.R)
+            self.tg.append(self.T)
+            self.rttg.append(t)
+            self.x_axis.append(self.x_axis[-1] + 1)
+            self.next_seq += len(payload)
+            
+        else:
+            self.timeouts += 1
+            self.avg_t += self.R
         
 
         ### END: ADD YOUR CODE HERE ... #####
@@ -261,6 +261,17 @@ def main():
     for i in range(1, x):
         client.send(message)
     print(client.avg_t/x)
+    
+    plt.plot(client.x_axis, client.rg, label="R value")
+    plt.plot(client.x_axis, client.tg, label="T value")
+    plt.plot(client.x_axis[1:], client.rttg, label="rtt")
+    plt.xlabel("Packet number")
+    plt.ylabel("Time in s")
+    plt.title("Change in R and T, Y = {}, e = {}, a = {}, c = {}".format(client.Y, client.e, client.a, client.c))
+    plt.legend()
+    plt.show()
+    plt.savefig("graph.png")
+
     client.close()
 
 

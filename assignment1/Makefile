@@ -44,14 +44,14 @@ help:
 	@echo "- Clean All: make clean\n"
 
 mininet:
-	$(SCRIPTS)/mn-stratum --topo linear,2 --link tc,delay=10ms
+	$(SCRIPTS)/mn-stratum --topo linear,2 --link tc,delay=10ms,loss=0
 
 mininet-prereqs:
 	docker exec -it mn-stratum bash -c \
 		"sed -i s/deb.debian.org/archive.debian.org/g /etc/apt/sources.list ; \
 		 sed -i '$d' /etc/apt/sources.list ; \
 		 apt-get update ; \
-		 apt-get -y --allow-unauthenticated install iptables python-scapy"
+		 apt-get -y --allow-unauthenticated install iptables python-scapy python-matplotlib"
 
 	$(SCRIPTS)/utils/mn-stratum/exec-script h1 \
 		"iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP"
