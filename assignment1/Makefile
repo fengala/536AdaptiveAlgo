@@ -44,7 +44,7 @@ help:
 	@echo "- Clean All: make clean\n"
 
 mininet:
-	$(SCRIPTS)/mn-stratum --topo linear,2
+	$(SCRIPTS)/mn-stratum --topo linear,2 --link tc,delay=10ms
 
 mininet-prereqs:
 	docker exec -it mn-stratum bash -c \
