@@ -50,7 +50,7 @@ class Client3WH:
         self.timeout = 3
 
         # New stuff
-        self.R = 0.4  # Our timeout that adapts
+        self.R = 1  # Our timeout that adapts
         self.a = 6.0
         self.c = 10.0
         self.b = (self.a - 1) / self.a
@@ -58,8 +58,8 @@ class Client3WH:
         self.Y = 0.05  # Retransmission limit
         self.e = 0.4  # Small constant
 
-        self.T = 0.2  # Smoothed RTT
-        self.V = 0.01  # Variance
+        self.T = 0.9  # Smoothed RTT
+        self.V = 0.05  # Variance
 
         self.avg_t = 0
 
@@ -249,7 +249,7 @@ def main():
     client.connect()
 
     message = sys.stdin.read(SEND_PACKET_SIZE)
-    x = 100
+    x = 200
     for i in range(1, x):
         client.send(message)
     print(client.avg_t / x)

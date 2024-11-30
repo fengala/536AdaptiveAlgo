@@ -19,7 +19,12 @@
 ##
 #############################################################################
 
+import matplotlib as mpl
+
+mpl.use("Agg")
+
 from scapy.all import *
+import matplotlib.pyplot as plt
 import threading
 
 SEND_PACKET_SIZE = 1000  # should be less than max packet size of 1500 bytes
@@ -47,7 +52,13 @@ class Client3WH:
 
         self.avg_t = 0
 
-        self.R = 0.025
+        self.R = 0.7
+        self.T = 0.6  # Smoothed RTT
+
+        
+        self.rg = [self.R]
+        self.rttg = []
+        self.x_axis = [0]
 
     def _start_sniffer(self):
         t = threading.Thread(target=self._sniffer)
@@ -204,12 +215,13 @@ class Client3WH:
             t = time.time() - start_time
             self.avg_t += t
             #print(t)
+            
+            self.rg.append(self.R)
+            self.rttg.append(t)
+            self.x_axis.append(self.x_axis[-1] + 1)
+            self.next_seq += len(payload)
         else:
             self.avg_t += self.R
-        
-    
-        self.next_seq += len(payload)
-
 
 
 
@@ -239,10 +251,21 @@ def main():
     client.connect()
 
     message = sys.stdin.read(SEND_PACKET_SIZE)
-    x = 100
+    x = 30
     for i in range(1, x):
         client.send(message)
     print(client.avg_t/x)
+
+    plt.plot(client.x_axis, client.rg, label="R value")
+    plt.plot(client.x_axis[1:], client.rttg, label="rtt")
+    plt.xlabel("Packet number")
+    plt.ylabel("Time in s")
+    plt.title(
+        "Change in R and rtt - Original"
+    )
+    plt.legend()
+    plt.show()
+    plt.savefig("graph_original.png")
 
     client.close()
 
