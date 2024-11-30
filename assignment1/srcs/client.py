@@ -223,7 +223,7 @@ class Client3WH:
             self.avg_t += t
             self.V = self.d * self.V + ((t - self.T) ** 2) / self.c
             self.T = self.b * self.T + t / self.a
-            self.R = self.T + self.e * ((self.V * (1 - self.Y) / self.Y) ** (1 / 2))
+            self.R = self.T + self.e * (math.sqrt(self.V * (1 - self.Y) / self.Y))
 
             self.rg.append(self.R)
             self.tg.append(self.T)
