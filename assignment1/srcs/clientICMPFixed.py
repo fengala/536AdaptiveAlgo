@@ -45,16 +45,12 @@ class Client:
         self.timeout = 3
 
         # New stuff
-        self.R = 0.135  # Our timeout that adapts
+        self.R = 0.135  # Our fixed timout
         self.a = 6.0
-        self.c = 10.0
         self.b = (self.a - 1) / self.a
-        self.d = (self.c - 1) / self.c
-        self.Y = 0.05  # Retransmission limit
-        self.e = 0.4  # Small constant
+
 
         self.T = 0.12  # Smoothed RTT
-        self.V = 0.00001  # Variance
 
         self.avg_t = 0
 
@@ -93,9 +89,7 @@ class Client:
         if t >= self.R or did_timeout:
             self.timeouts += 1
         
-        self.V = self.d * self.V + ((t - self.T) ** 2) / self.c
         self.T = self.b * self.T + t / self.a
-        self.R = self.T + self.e * (math.sqrt(self.V * (1 - self.Y) / self.Y))
 
         self.rg.append(self.R)
         self.tg.append(self.T)
@@ -109,7 +103,7 @@ class Client:
 def main():
     """Parse command-line arguments and call client function"""
     if len(sys.argv) != 2:
-        sys.exit("Usage: ./client-3wh.py [Server IP]")
+        sys.exit("Usage: ./client-3wh.py [Server IP] [timeout]")
     server_ip = sys.argv[1]
 
     client = Client(server_ip)
@@ -125,14 +119,10 @@ def main():
     plt.plot(client.x_axis, client.rg, label="R value")
     plt.xlabel("Packet number")
     plt.ylabel("Time in s")
-    plt.title(
-        "Change in R and T, Y = {}, e = {}, a = {}, c = {}".format(
-            client.Y, client.e, client.a, client.c
-        )
-    )
+    plt.title("Change in R and T")
     plt.legend()
     plt.show()
-    plt.savefig("graphICMP.png")
+    plt.savefig("graphICMPFixed.png")
     
     print("drops: {} / timeouts: {}".format(client.losses, client.timeouts))
 
